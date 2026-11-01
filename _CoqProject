@@ -1,0 +1,20 @@
+-Q quickproof/coq/QuickProof QuickProof
+-R src WgNoise
+-Q vendor/fiat-crypto/coqprime Coqprime
+-Q vendor/fiat-crypto/rewriter Rewriter
+-Q vendor/fiat-crypto/fiat Crypto
+-Q x25519fiat X25519
+quickproof/coq/QuickProof
+src
+x25519fiat/Check.v
+x25519fiat/Cols.v
+x25519fiat/Limbs.v
+x25519fiat/MulSqr.v
+x25519fiat/Freeze.v
+x25519fiat/Bytes.v
+x25519fiat/Scalar.v
+x25519fiat/DH.v
+x25519fiat/FeF.v
+x25519fiat/Ladder.v
+x25519fiat/Refine.v
+x25519fiat/x25519_dh_agree_proved.v

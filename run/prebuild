@@ -1,0 +1,7 @@
+# Coq projects that `qp verify` builds from source, in this order, before the main build: coq_makefile -f
+# _CoqProject -o CoqMakefile, then make, in each directory.  They are vendored unmodified (vendor/fiat-crypto/PIN)
+# and mapped with -Q in _CoqProject, which does not list their files; the X25519 Diffie-Hellman agreement
+# (x25519fiat/) is proved from them.
+vendor/fiat-crypto/coqprime
+vendor/fiat-crypto/rewriter
+vendor/fiat-crypto/fiat

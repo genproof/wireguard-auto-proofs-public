@@ -1,0 +1,18 @@
+# build products
+*.vo
+*.vok
+*.vos
+*.glob
+*.aux
+.*.aux
+.lia.cache
+.nia.cache
+*.vof
+*.vof.meta
+CoqMakefile
+CoqMakefile.conf
+.CoqMakefile.d
+build/
+build.log
+prebuild.log
+__pycache__/

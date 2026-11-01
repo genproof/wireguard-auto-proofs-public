@@ -1,0 +1,14 @@
+The Coq libraries the X25519 Diffie-Hellman agreement (x25519fiat/) is proved from, copied unmodified (only the
+files listed in each directory's _CoqProject):
+
+fiat-crypto  https://github.com/mit-plv/fiat-crypto  commit 4e6d875bbb5e81fc240a31239f154da3b0b7582e (2026-09-07,
+             the last commit with Coq 8.20 support; the curve files are byte-identical to tag v0.1.6 9d068246),
+             105 files of src/ (fiat/_CoqProject)
+Coqprime     https://github.com/thery/coqprime  v8.20.1, commit 09db3f80bc9966aa0efa99e93db12b08a0017e77, 28 files
+             (coqprime/_CoqProject)
+Rewriter     https://github.com/mit-plv/rewriter  commit b8043f27a105568fd6db7530b78caa7f6b005fa5, 5 files
+             (rewriter/_CoqProject)
+
+Licences: fiat-crypto and Rewriter are under the MIT License, the Apache License 2.0 or the BSD 1-Clause License,
+at your option (fiat/ and rewriter/: COPYRIGHT, LICENSE-MIT, LICENSE-APACHE, LICENSE-BSD-1, AUTHORS, CONTRIBUTORS,
+copied from those commits); Coqprime is under the GNU Lesser General Public License 2.1 (coqprime/LICENSE).

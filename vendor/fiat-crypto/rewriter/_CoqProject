@@ -1,0 +1,6 @@
+-R . Rewriter
+./Util/FixCoqMistakes.v
+./Util/GlobalSettings.v
+./Util/LetIn.v
+./Util/Notations.v
+./Util/Tactics/GetGoal.v

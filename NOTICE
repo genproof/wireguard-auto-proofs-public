@@ -1,0 +1,14 @@
+wireguard-auto-proofs
+
+Required Notice: Copyright 2026 GenProof (https://genproof.com)
+
+It contains source files of the Linux kernel (https://github.com/torvalds/linux, commit
+551c722f40809618230001baccf219193e22fc5a) in drivers/net/wireguard/, lib/crypto/ and include/crypto/, and kernel code
+copied into harness/ and patch/ (from drivers/net/wireguard/receive.c, send.c and timers.c, lib/refcount.c and
+include/linux/kref.h). They, and every C file of harness/ and patch/, are under the GNU General Public License
+version 2, some of them also under the MIT License, with the copyright notices in each file: see COPYING and
+LICENSES/. Several are altered: the changes are the patches in patch/series/ and the lines marked `QUICKPROOF`, and
+DEVIATIONS.md lists them.
+
+It contains Coq files of fiat-crypto, Rewriter and Coqprime, unmodified, in vendor/fiat-crypto/, under their own
+licences (vendor/fiat-crypto/PIN).

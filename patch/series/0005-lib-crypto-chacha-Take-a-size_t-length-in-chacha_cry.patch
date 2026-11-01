@@ -1,0 +1,79 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Vladimir Kukharenko <vladimir@genproof.com>
+Date: Sun, 11 Oct 2026 17:07:18 +0000
+Subject: [PATCH 5/5] lib/crypto: chacha: Take a size_t length in
+ chacha_crypt()
+
+chacha20poly1305_encrypt(), chacha20poly1305_decrypt() and the
+xchacha20poly1305 variants take size_t lengths.  They pass these lengths
+to chacha20_crypt(), which takes an unsigned int.
+
+For a message of 2^32 + k bytes, chacha20_crypt() processes only the
+first k bytes.  In-place encryption leaves the remaining bytes as
+plaintext.  Until poly1305_update() took a size_t, those bytes were not
+authenticated either.  Commit ed20078b7e33 ("crypto: chacha20poly1305 -
+import construction and selftest from Zinc") introduced this behavior.
+
+Change chacha_crypt() and chacha20_crypt() to take size_t lengths, as
+poly1305_update() and the other library functions do.  The architecture
+code takes an unsigned int length.  Split inputs larger than UINT_MAX
+into chunks of at most UINT_MAX bytes.  Round each non-final chunk down
+to a multiple of CHACHA_BLOCK_SIZE to keep the keystream continuous.
+
+Lengths up to UINT_MAX make the same single call as before.  The
+RFC 8439 limit of 2^38 - 64 bytes per message still applies.
+
+No in-tree caller passes messages this large, so this is an ABI
+robustness improvement.  I found the bug while writing a Coq/VST proof
+of this code with LLM agents, and reproduced it in userspace.
+
+Assisted-by: LLM
+---
+ include/crypto/chacha.h |  4 ++--
+ lib/crypto/chacha.c     | 15 ++++++++++++++-
+ 2 files changed, 16 insertions(+), 3 deletions(-)
+
+diff --git a/include/crypto/chacha.h b/include/crypto/chacha.h
+index 1cc301a48469..4c18e99eb4f7 100644
+--- a/include/crypto/chacha.h
++++ b/include/crypto/chacha.h
+@@ -86,10 +86,10 @@ static inline void chacha_init(struct chacha_state *state,
+ }
+ 
+ void chacha_crypt(struct chacha_state *state, u8 *dst, const u8 *src,
+-		  unsigned int bytes, int nrounds);
++		  size_t bytes, int nrounds);
+ 
+ static inline void chacha20_crypt(struct chacha_state *state,
+-				  u8 *dst, const u8 *src, unsigned int bytes)
++				  u8 *dst, const u8 *src, size_t bytes)
+ {
+ 	chacha_crypt(state, dst, src, bytes, 20);
+ }
+diff --git a/lib/crypto/chacha.c b/lib/crypto/chacha.c
+index 86e5d382a4e0..ffa0c75ce501 100644
+--- a/lib/crypto/chacha.c
++++ b/lib/crypto/chacha.c
+@@ -39,8 +39,21 @@ chacha_crypt_generic(struct chacha_state *state, u8 *dst, const u8 *src,
+ #endif
+ 
+ void chacha_crypt(struct chacha_state *state, u8 *dst, const u8 *src,
+-		  unsigned int bytes, int nrounds)
++		  size_t bytes, int nrounds)
+ {
++	/*
++	 * chacha_crypt_arch() takes an unsigned int length.  Process longer
++	 * messages in chunks that are a multiple of CHACHA_BLOCK_SIZE, so that
++	 * the keystream continues correctly from one chunk to the next.
++	 */
++	while (bytes > UINT_MAX) {
++		unsigned int l = round_down(UINT_MAX, CHACHA_BLOCK_SIZE);
++
++		chacha_crypt_arch(state, dst, src, l, nrounds);
++		dst += l;
++		src += l;
++		bytes -= l;
++	}
+ 	chacha_crypt_arch(state, dst, src, bytes, nrounds);
+ }
+ EXPORT_SYMBOL_GPL(chacha_crypt);
