@@ -55,6 +55,11 @@ Proof. vm_compute. reflexivity. Qed.
 (* ---------------------------------------------------------------------- *)
 (* THE THEOREM.                                                            *)
 (* ---------------------------------------------------------------------- *)
-Theorem ae_split_blake2s : harness_safe whole_prog.
-Proof.
-Admitted.
+(* Generated here as `Theorem ae_split_blake2s : harness_safe whole_prog.`, it is
+   stated and proved (Qed) in src/contracts/laws.v, on this file's
+   whole_prog:
+     Theorem ae_split_blake2s :
+       harness_safe WgNoise.contracts.ae_split_blake2s.whole_prog.
+   It cannot be proved here: the proof Requires this file for whole_prog.
+   `qp verify` checks its elaborated statement and whole_prog against the
+   contract commit. *)

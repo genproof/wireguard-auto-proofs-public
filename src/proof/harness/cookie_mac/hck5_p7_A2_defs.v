@@ -1,0 +1,152 @@
+(* law cookie_mac, phase P7, segment A2 (statement 83, T1 -> T2) cut further: port of v1's
+   hck3_p7_A2_defs.v (the v2 states carry hck5_A, the temps kes / head0 / refs0 and hck5_snaps, untouched).
+   s83 = A2_call (t'53 = bytes_eq(mac1, copy + len - 32, 16));
+         if (!t'53) verdict = 0; else if (!check_cookie) verdict = 1; else A2_inner
+   A2_inner = A2_rot (t'51 = m_expired(secret_birth, 120, now); if (t'51) { bytes_copy(secret, log, 32); secret_birth = now; })
+              ; A2_rest
+   A2_rest = A2_cook (m_cookie(cookie, secret, &skb)) ; A2_mac (m_mac(mac2, cookie, 16, copy, len - 16)) ; A2_tail
+   A2_tail = t'52 = bytes_eq(mac2, copy + len - 16, 16); if (!t'52) verdict = 1; else if (!ratelimit) verdict = 2; else verdict = 3
+   States: U (pre of A2_inner: T1 + the mac1 test passed + check_cookie), U2 (after A2_rot: secret_birth / secret
+   = B's checker after validate, snd VR), U3 (after A2_cook ; A2_mac: cookie = CK, mac2 = M2). *)
+Require Import VST.floyd.proofauto.
+Require Import VST.floyd.library.
+Require Import VST.floyd.VSU.
+Require Import QuickProof.Contract.
+Require WgNoise.units.Noise WgNoise.units.Cookie WgNoise.units.Counter WgNoise.units.Blake2s WgNoise.units.Chacha WgNoise.units.ChachaBlock WgNoise.units.Poly1305 WgNoise.units.Poly1305Donna32 WgNoise.units.Chacha20poly1305 WgNoise.units.Curve25519 WgNoise.units.Curve25519Fiat32 WgNoise.units.Shim WgNoise.units.Libc WgNoise.units.Malloc.
+Require Import WgNoise.proof.common.wg3_worlds.
+Require Import WgNoise.proof.prims.prim_api.
+Require Import WgNoise.proof.blake2s.spec.
+Require Import WgNoise.proof.protocol.prot_model3.
+Require Import WgNoise.proof.protocol.prot_repr3.
+Require Import WgNoise.proof.protocol4.prot_repr4.
+Require Import WgNoise.proof.protocol4.prot_specs4.
+Require Import WgNoise.proof.harness.common.hc_model3.
+Require Import WgNoise.proof.harness.common.hc_specs3.
+Require Import WgNoise.proof.harness.common4.hc4_model.
+Require Import WgNoise.proof.harness.common4.hc4_specs.
+Require Import WgNoise.proof.harness.cookie_mac.hck5_cut.
+Require Import WgNoise.proof.harness.cookie_mac.hck5_spec.
+Require Import WgNoise.proof.harness.cookie_mac.hck5_defs.
+Require Import WgNoise.proof.harness.cookie_mac.hck5_p7_defs.
+Require WgNoise.harness.x_cookie_mac.code.
+Local Open Scope logic.
+
+Definition hck5_p7_A2_call := ltac:(let x := eval cbv delta [hck5_p7_s83] in hck5_p7_s83 in
+  match x with Ssequence ?a _ => exact a end).
+Definition hck5_p7_A2_inner := ltac:(let x := eval cbv delta [hck5_p7_s83] in hck5_p7_s83 in
+  match x with Ssequence _ (Sifthenelse _ _ (Sifthenelse _ _ ?i)) => exact i end).
+Definition hck5_p7_A2_rot := ltac:(let x := eval cbv delta [hck5_p7_A2_inner] in hck5_p7_A2_inner in
+  match x with Ssequence ?a _ => exact a end).
+Definition hck5_p7_A2_cook := ltac:(let x := eval cbv delta [hck5_p7_A2_inner] in hck5_p7_A2_inner in
+  match x with Ssequence _ (Ssequence ?a _) => exact a end).
+Definition hck5_p7_A2_mac := ltac:(let x := eval cbv delta [hck5_p7_A2_inner] in hck5_p7_A2_inner in
+  match x with Ssequence _ (Ssequence _ (Ssequence ?a _)) => exact a end).
+Definition hck5_p7_A2_tail := ltac:(let x := eval cbv delta [hck5_p7_A2_inner] in hck5_p7_A2_inner in
+  match x with Ssequence _ (Ssequence _ (Ssequence _ ?a)) => exact a end).
+
+Lemma hck5_p7_A2_inner_eq :
+  hck5_p7_A2_inner = Ssequence hck5_p7_A2_rot (Ssequence hck5_p7_A2_cook (Ssequence hck5_p7_A2_mac hck5_p7_A2_tail)).
+Proof. reflexivity. Qed.
+
+Section States.
+Variable x25519: list byte -> list byte -> list byte.
+
+(* pre of A2_inner: T1, the mac1 test passed and check_cookie (so snd VR = checker_rotate CC2 now r) *)
+Definition hck5_p7_A2_U (gv: globals) (L: hck5_loc) (FR: mpred) : environ -> mpred :=
+  EX R: hck5_run, EX S: shim, EX A: hck5_aval, EX m: val, EX c: val, EX Q: hck5_pkt, EX cmode: bool,
+  EX C: cookie, EX ck: list byte, EX MSG1: list byte, EX C1: cookie,
+  EX MSG2: list byte, EX corrupted: bool, EX chk: bool, EX rl: bool, EX r: list byte, EX VR: Z * checker,
+  EX M1: list byte,
+  PROPx [hck5_run_ok x25519 R; hck5_aok L A; hck5_pkt_ok Q;
+         hck5_is ck (cookie_of (r_secret R) (hck5_skb Q m)); hck5_ck_ok R Q cmode C ck;
+         hck5_is (MSG1, C1) (add_mac_model C (q_msg Q) (q_now Q)); Zlength MSG1 = q_n Q;
+         hck5_after_val x25519 R L Q m cmode MSG1 MSG2 corrupted chk rl r VR S;
+         hck5_is M1 (mac1_of (cc_mkey (snd VR)) MSG2); Zlength M1 = 16;
+         bytes_eqb M1 (sublist (q_n Q - 32) (q_n Q - 16) MSG2) = true; chk = true]
+  (LOCALx ([temp HK._corrupted (Vint (if corrupted then Int.one else Int.zero));
+            temp HK._honest_peer (Vint (if r_honest R then Int.one else Int.zero));
+            temp HK._kes (a_kes A); temp HK._head0 (a_head0 A); temp HK._refs0 (Vint (p_refs (a_P A)));
+            temp HK._len (Vlong (Int64.repr (q_n Q))); temp HK._msg m; temp HK._copy c;
+            temp HK._now (Vlong (q_now Q));
+            temp HK._cookie_mode (Vint (if cmode then Int.one else Int.zero));
+            temp HK._check_cookie (Vint (if chk then Int.one else Int.zero));
+            temp HK._secret_birth (Vlong (cc_birth (hck5_CC2 x25519 R L (q_now Q) cmode)));
+            temp HK._r (Vint (Int.repr (fst VR)))] ++ hck5_lvars gv L)
+  (SEPx ([hck5_A x25519 R L A] ++ hck5_bside x25519 R L ++ hck5_bufs x25519 R L ++
+         [checker_rep Tsh (cc_addr (l_wb L)) (snd VR);
+          cookie_rep Tsh (cookie_addr (l_p L)) C1;
+          skb_rep Tsh (l_skb L) (hck5_skb Q m);
+          hck5_tok (q_n Q) m; hbytes Ews MSG2 m; hck5_tok (q_n Q) c; hbytes Ews MSG2 c;
+          hbytes Tsh (cc_secret (hck5_CC2 x25519 R L (q_now Q) cmode)) (l_secret L)] ++
+         [hout Tsh 32 (l_k L); hbytes Tsh M1 (l_mac1 L); hout Tsh 16 (l_mac2 L); hout Tsh 16 (l_cookie L);
+          @data_at_ CKS Tsh t_cksnap (l_cs L)] ++
+         hck5_snaps x25519 R L A C1 (hck5_CC2 x25519 R L (q_now Q) cmode) S (Some (hck5_skb Q m)) ++
+         hck5_globs gv S FR))).
+
+(* after A2_rot: secret_birth / secret = B's checker after validate (snd VR) *)
+Definition hck5_p7_A2_U2 (gv: globals) (L: hck5_loc) (FR: mpred) : environ -> mpred :=
+  EX R: hck5_run, EX S: shim, EX A: hck5_aval, EX m: val, EX c: val, EX Q: hck5_pkt, EX cmode: bool,
+  EX C: cookie, EX ck: list byte, EX MSG1: list byte, EX C1: cookie,
+  EX MSG2: list byte, EX corrupted: bool, EX chk: bool, EX rl: bool, EX r: list byte, EX VR: Z * checker,
+  EX M1: list byte,
+  PROPx [hck5_run_ok x25519 R; hck5_aok L A; hck5_pkt_ok Q;
+         hck5_is ck (cookie_of (r_secret R) (hck5_skb Q m)); hck5_ck_ok R Q cmode C ck;
+         hck5_is (MSG1, C1) (add_mac_model C (q_msg Q) (q_now Q)); Zlength MSG1 = q_n Q;
+         hck5_after_val x25519 R L Q m cmode MSG1 MSG2 corrupted chk rl r VR S;
+         hck5_is M1 (mac1_of (cc_mkey (snd VR)) MSG2); Zlength M1 = 16;
+         bytes_eqb M1 (sublist (q_n Q - 32) (q_n Q - 16) MSG2) = true; chk = true]
+  (LOCALx ([temp HK._corrupted (Vint (if corrupted then Int.one else Int.zero));
+            temp HK._honest_peer (Vint (if r_honest R then Int.one else Int.zero));
+            temp HK._kes (a_kes A); temp HK._head0 (a_head0 A); temp HK._refs0 (Vint (p_refs (a_P A)));
+            temp HK._len (Vlong (Int64.repr (q_n Q))); temp HK._msg m; temp HK._copy c;
+            temp HK._now (Vlong (q_now Q));
+            temp HK._cookie_mode (Vint (if cmode then Int.one else Int.zero));
+            temp HK._check_cookie (Vint (if chk then Int.one else Int.zero));
+            temp HK._secret_birth (Vlong (cc_birth (snd VR)));
+            temp HK._r (Vint (Int.repr (fst VR)))] ++ hck5_lvars gv L)
+  (SEPx ([hck5_A x25519 R L A] ++ hck5_bside x25519 R L ++ hck5_bufs x25519 R L ++
+         [checker_rep Tsh (cc_addr (l_wb L)) (snd VR);
+          cookie_rep Tsh (cookie_addr (l_p L)) C1;
+          skb_rep Tsh (l_skb L) (hck5_skb Q m);
+          hck5_tok (q_n Q) m; hbytes Ews MSG2 m; hck5_tok (q_n Q) c; hbytes Ews MSG2 c;
+          hbytes Tsh (cc_secret (snd VR)) (l_secret L)] ++
+         [hout Tsh 32 (l_k L); hbytes Tsh M1 (l_mac1 L); hout Tsh 16 (l_mac2 L); hout Tsh 16 (l_cookie L);
+          @data_at_ CKS Tsh t_cksnap (l_cs L)] ++
+         hck5_snaps x25519 R L A C1 (hck5_CC2 x25519 R L (q_now Q) cmode) S (Some (hck5_skb Q m)) ++
+         hck5_globs gv S FR))).
+
+(* after A2_cook ; A2_mac: cookie = CK = B's cookie for the source with snd VR's secret, mac2 = M2 *)
+Definition hck5_p7_A2_U3 (gv: globals) (L: hck5_loc) (FR: mpred) : environ -> mpred :=
+  EX R: hck5_run, EX S: shim, EX A: hck5_aval, EX m: val, EX c: val, EX Q: hck5_pkt, EX cmode: bool,
+  EX C: cookie, EX ck: list byte, EX MSG1: list byte, EX C1: cookie,
+  EX MSG2: list byte, EX corrupted: bool, EX chk: bool, EX rl: bool, EX r: list byte, EX VR: Z * checker,
+  EX M1: list byte, EX CK: list byte, EX M2: list byte,
+  PROPx [hck5_run_ok x25519 R; hck5_aok L A; hck5_pkt_ok Q;
+         hck5_is ck (cookie_of (r_secret R) (hck5_skb Q m)); hck5_ck_ok R Q cmode C ck;
+         hck5_is (MSG1, C1) (add_mac_model C (q_msg Q) (q_now Q)); Zlength MSG1 = q_n Q;
+         hck5_after_val x25519 R L Q m cmode MSG1 MSG2 corrupted chk rl r VR S;
+         hck5_is M1 (mac1_of (cc_mkey (snd VR)) MSG2); Zlength M1 = 16;
+         bytes_eqb M1 (sublist (q_n Q - 32) (q_n Q - 16) MSG2) = true; chk = true;
+         hck5_is CK (cookie_of (cc_secret (snd VR)) (hck5_skb Q m)); Zlength CK = 16;
+         hck5_is M2 (mac2_of CK MSG2); Zlength M2 = 16]
+  (LOCALx ([temp HK._corrupted (Vint (if corrupted then Int.one else Int.zero));
+            temp HK._honest_peer (Vint (if r_honest R then Int.one else Int.zero));
+            temp HK._kes (a_kes A); temp HK._head0 (a_head0 A); temp HK._refs0 (Vint (p_refs (a_P A)));
+            temp HK._len (Vlong (Int64.repr (q_n Q))); temp HK._msg m; temp HK._copy c;
+            temp HK._now (Vlong (q_now Q));
+            temp HK._cookie_mode (Vint (if cmode then Int.one else Int.zero));
+            temp HK._check_cookie (Vint (if chk then Int.one else Int.zero));
+            temp HK._secret_birth (Vlong (cc_birth (snd VR)));
+            temp HK._r (Vint (Int.repr (fst VR)))] ++ hck5_lvars gv L)
+  (SEPx ([hck5_A x25519 R L A] ++ hck5_bside x25519 R L ++ hck5_bufs x25519 R L ++
+         [checker_rep Tsh (cc_addr (l_wb L)) (snd VR);
+          cookie_rep Tsh (cookie_addr (l_p L)) C1;
+          skb_rep Tsh (l_skb L) (hck5_skb Q m);
+          hck5_tok (q_n Q) m; hbytes Ews MSG2 m; hck5_tok (q_n Q) c; hbytes Ews MSG2 c;
+          hbytes Tsh (cc_secret (snd VR)) (l_secret L)] ++
+         [hout Tsh 32 (l_k L); hbytes Tsh M1 (l_mac1 L); hbytes Tsh M2 (l_mac2 L); hbytes Tsh CK (l_cookie L);
+          @data_at_ CKS Tsh t_cksnap (l_cs L)] ++
+         hck5_snaps x25519 R L A C1 (hck5_CC2 x25519 R L (q_now Q) cmode) S (Some (hck5_skb Q m)) ++
+         hck5_globs gv S FR))).
+
+End States.

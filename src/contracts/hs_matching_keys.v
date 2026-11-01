@@ -73,6 +73,11 @@ Proof. vm_compute. reflexivity. Qed.
 (* ---------------------------------------------------------------------- *)
 (* THE THEOREM.                                                            *)
 (* ---------------------------------------------------------------------- *)
-Theorem hs_matching_keys : harness_safe whole_prog.
-Proof.
-Admitted.
+(* Generated here as `Theorem hs_matching_keys : harness_safe whole_prog.`, it is
+   stated and proved (Qed) in src/contracts/laws.v, on this file's
+   whole_prog:
+     Theorem hs_matching_keys :
+       harness_safe WgNoise.contracts.hs_matching_keys.whole_prog.
+   It cannot be proved here: the proof Requires this file for whole_prog.
+   `qp verify` checks its elaborated statement and whole_prog against the
+   contract commit. *)

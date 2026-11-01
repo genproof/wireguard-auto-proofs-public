@@ -73,6 +73,11 @@ Proof. vm_compute. reflexivity. Qed.
 (* ---------------------------------------------------------------------- *)
 (* THE THEOREM.                                                            *)
 (* ---------------------------------------------------------------------- *)
-Theorem hs_begin_session_state : harness_safe whole_prog.
-Proof.
-Admitted.
+(* Generated here as `Theorem hs_begin_session_state : harness_safe whole_prog.`, it is
+   stated and proved (Qed) in src/contracts/laws.v, on this file's
+   whole_prog:
+     Theorem hs_begin_session_state :
+       harness_safe WgNoise.contracts.hs_begin_session_state.whole_prog.
+   It cannot be proved here: the proof Requires this file for whole_prog.
+   `qp verify` checks its elaborated statement and whole_prog against the
+   contract commit. *)
