@@ -7,8 +7,8 @@ ChaCha20-Poly1305, XChaCha20-Poly1305 and Curve25519. A spec is a small C progra
 kernel's functions on any inputs and checks the results; you can run it. Its theorem says that for every value the
 spec draws, no run has undefined behaviour in CompCert's semantics of C (through VST's adequacy theorem, whose
 instance for QuickProof's environment is upcoming) and every check holds. AI agents wrote the proofs in Coq, with VST
-and QuickProof v0.1.0. Coq checks them, and nothing the agents wrote is trusted. The proofs contain no `Admitted` and
-no axiom of their own.
+and QuickProof v0.1.0. Coq checks them, and nothing the agents wrote in the proofs is trusted. The proofs contain no `Admitted` and
+no axiom of their own. AI agents drafted the specs too, and they have not had a human review yet.
 
 ## What is proved
 
@@ -121,7 +121,7 @@ its test:
 
 - idioms VST cannot reason about are rewritten (rows P01 to P21): `goto` becomes `break` out of a block, struct
   copies and type-punning stores are written element by element, and an empty compound literal becomes `memset`.
-  Every changed line carries a `QUICKPROOF` comment. `patch/check.sh` shows that the code is exactly upstream plus
+  Every rewrite carries a `QUICKPROOF` comment on its block. `patch/check.sh` shows that the code is exactly upstream plus
   `patch/wgpatch.py`, and `patch/diff.sh` runs the unmodified and the changed code on the same pseudo-random inputs
   under sanitizers and finds the same outputs;
 - the kernel around the code (types, locks, allocation, clocks, randomness, the peer and device structures, the two
@@ -249,7 +249,7 @@ header: the C files of `harness/` and `patch/`, which are compiled with the kern
 places (from `receive.c`, `send.c`, `timers.c`, `lib/refcount.c` and `include/linux/`), the kernel patches in
 `patch/series/`, and the kernel code that `patch/wgpatch.py` writes into the kernel's files. The rest keeps the
 licence it comes with: the Linux files are under GPL-2.0, some crypto files under GPL-2.0 or MIT ([COPYING](COPYING),
-[LICENSES/](LICENSES)), and the changes to them are the patches in `patch/series/` and the lines marked `QUICKPROOF`,
+[LICENSES/](LICENSES)), and the changes to them are the patches in `patch/series/` and the rewrites marked `QUICKPROOF`,
 which DEVIATIONS.md lists; each Clight file `src/**/code.v` has the licence of the C file `clightgen` generates it
 from; the Coq libraries in `vendor/fiat-crypto/` are under MIT, Apache 2.0 or BSD 1-Clause (fiat-crypto, Rewriter)
 and LGPL 2.1 (Coqprime), as `vendor/fiat-crypto/PIN` says; and the framework in `quickproof/` is QuickProof, under

@@ -5,8 +5,8 @@ proof as described here. Four kinds of differences from a kernel build are liste
 source code refers to:
 
 - P: the patch, `patch/wgpatch.py`. It first applies two patches of the lib/crypto series in `patch/series/`
-  (P22, P23), then rewrites some idioms that VST or CompCert cannot handle (P01 to P21). Every line the rewrites
-  change carries a `QUICKPROOF Pnn` comment. The series' lines carry none: they are the series' text itself, and
+  (P22, P23), then rewrites some idioms that VST or CompCert cannot handle (P01 to P21). Every rewrite carries a
+  `QUICKPROOF Pnn` comment on its block. The series' lines carry none: they are the series' text itself, and
   `patch/wgpatch.py` checks them instead (every hunk at exactly its stated line with its exact context, and the git
   blob of every file it touches before and after).
 - S: the kernel shim, `patch/include/` and `patch/wg_shim.c`, which stands in for the parts of the kernel that
